@@ -82,10 +82,20 @@ protected:
 private:
 
     char     dt[10];      // working buffer
-
     IMU::EulerAngles imuAngles;
 
 };
+
+#define CHIP_ID 0x00
+#define OPR_MODE 0x3D
+#define NDOF_MODE 0x0C //xxxx1100b
+#define SYS_TRIGGER 0x3F
+#define UNIT_SEL 0x3B
+
+#define ACC_DATA_X_LSB 0x08
+#define GYR_DATA_X_LSB 0x14
+#define EUL_DATA_X_LSB 0x1A
+
 
 // Quaternion data registers
 #define BNO055_QUATERNION_W_LSB 0x20
