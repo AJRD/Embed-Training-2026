@@ -66,7 +66,7 @@ public:
 
     void setState(TurretInfo state);
 
-    // void set_desired_turret(float des_yaw_angle, float des_pitch_angle);
+    void set_desired_turret(float des_yaw_angle, float des_pitch_angle);
 
     void periodic(float chasssisRpm);
 

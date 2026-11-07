@@ -2,7 +2,7 @@
 #include "mbed.h"
 
 BNO055::BNO055(I2C &i2c, uint8_t addr) noexcept
-    : _i2c_p(&i2c),
+    : //_i2c_p(&i2c),
       _i2c(i2c), 
       _res(NC),
       chip_addr(addr),
@@ -12,7 +12,7 @@ BNO055::BNO055(I2C &i2c, uint8_t addr) noexcept
 }
 
 BNO055::BNO055(I2C &i2c, uint8_t addr, PinName p_reset) noexcept
-    : _i2c_p(&i2c),
+    : //_i2c_p(&i2c),
       _i2c(i2c),
       _res(p_reset, 0),
       chip_addr(addr), 
@@ -22,7 +22,7 @@ BNO055::BNO055(I2C &i2c, uint8_t addr, PinName p_reset) noexcept
 }
 
 void BNO055::init() noexcept{
-    _i2c.frequency(100000);
+    _i2c.frequency(100000); // 100Khz
 
     dt[0] = UNIT_SEL;
     dt[1] = 0x00; // Windows orientation; Euler Degrees; GYR Dps; ACC m/s^2
@@ -31,7 +31,7 @@ void BNO055::init() noexcept{
     dt[0] = OPR_MODE;
     dt[1] = NDOF_MODE;
     _i2c.write(chip_addr, dt, 2, false);
-    ThisThread::sleep_for(19);
+    ThisThread::sleep_for(400);
 
     cantReadDataCount = 0;
 }    
@@ -78,10 +78,13 @@ void BNO055::get_accel(BNO055_VECTOR_TypeDef *la){
         la -> x = (double) x / 100.0; // in m/s^2
         la -> y = (double) y / 100.0;
         la -> z = (double) z / 100.0;
+
     } else {
         cantReadDataCount++;
     }
 }
+
+
 
 /** Get Gyro data
  * @param double type of 3D data address
@@ -120,6 +123,8 @@ void BNO055::get_gyro(BNO055_VECTOR_TypeDef *gr){
   * @param fusion mode
   * @return none
   */
+
+
 void BNO055::change_fusion_mode(uint8_t mode){
     dt[0] = OPR_MODE;
     dt[1] = mode;
@@ -158,7 +163,7 @@ IMU::EulerAngles BNO055::read(){ //
 }
 
 IMU::EulerAngles BNO055::getImuAngles(){
-    return read();
+    return imuAngles;
 }
 
 /*

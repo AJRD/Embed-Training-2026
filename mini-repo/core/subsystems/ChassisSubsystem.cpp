@@ -57,7 +57,10 @@ ChassisSubsystem::ChassisSubsystem(const Config &config)
 //TODO: Implement setWheelSpeeds to set the speed of each wheel based on the desired wheel speeds. 
 void ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
 {
-
+    LF.setSpeed(wheelSpeeds.LF);
+    LB.setSpeed(wheelSpeeds.LB);
+    RF.setSpeed(wheelSpeeds.RF);
+    RB.setSpeed(wheelSpeeds.RB);
 }
 
 void ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRIVE_MODE mode)
@@ -67,10 +70,16 @@ void ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRI
     {   //TODO: Figure this out 
 
         // Consider the following: Updating Yaw Current
-
+        yawCurrent = encoder->getEncoderYawPosition(); 
         // Account for rollover at 360 degrees
-
+        if (yawCurrent < 0.0) {
+            yawCurrent += 360.0;
+        }
+        else if (yawCurrent > 360.0) {
+            yawCurrent -= 360.0;
+        }
         // remember your rotate ChassisSpeeds
+        desiredChassisSpeeds = desiredChassisSpeeds_;
     }
     else if (mode == ROBOT_ORIENTED)
     {

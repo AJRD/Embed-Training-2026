@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/VS Code/TR/TR Training/Embed-Training-2026/mini-repo"
+    "clangd.path": "/opt/homebrew/opt/llvm/bin/clangd",
+    "cmake.sourceDirectory": "/Users/renjingyao/Embed-Training-2026/mini-repo"
 }

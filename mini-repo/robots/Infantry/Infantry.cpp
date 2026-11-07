@@ -172,8 +172,8 @@ class Infantry : public BaseRobot {
         imuAngles = imu_.getImuAngles();
         max_linear_vel = MAX_VEL;
         // TODO: What should these be instead of zero? 
-        des_chassis_state.vX = 0;
-        des_chassis_state.vY = 0;
+        des_chassis_state.vX = max_linear_vel * jy;
+        des_chassis_state.vY = max_linear_vel * jx;
 
         // Read jetson
         // jetson_state = jetson.read();
@@ -186,10 +186,14 @@ class Infantry : public BaseRobot {
         // Turret from remote
         // TODO: IMPLEMENT TURRET LOGIC HERE (Hint: update desired pitch and yaw from remote readings)
         // yaw_desired_angle = ?
-
-
-
-
+        if (remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N){
+            yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS;
+            pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS;
+            turret_.set_desired_turret(yaw_desired_angle, pitch_desired_angle);
+        } else {
+            des_turret_state.turret_mode = SLEEP;
+            turret_.setState(des_turret_state);
+        }
         // pitch_desired_angle = ?
 
 
@@ -199,6 +203,11 @@ class Infantry : public BaseRobot {
 
         // Chassis logic
         // TODO: ADD THE CHASSIS LOGIC HERE
+        if (remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N){
+            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::ROBOT_ORIENTED);
+        } else {
+            chassis_.setWheelPower({0,0,0,0});
+        }
 
 
 
