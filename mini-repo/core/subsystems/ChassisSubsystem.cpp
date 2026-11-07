@@ -79,7 +79,7 @@ void ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRI
             yawCurrent -= 360.0;
         }
         // remember your rotate ChassisSpeeds
-        desiredChassisSpeeds = desiredChassisSpeeds_;
+        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawCurrent);
     }
     else if (mode == ROBOT_ORIENTED)
     {

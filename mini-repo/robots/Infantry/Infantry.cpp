@@ -174,6 +174,7 @@ class Infantry : public BaseRobot {
         // TODO: What should these be instead of zero? 
         des_chassis_state.vX = max_linear_vel * jy;
         des_chassis_state.vY = max_linear_vel * jx;
+        des_chassis_state.vOmega = 0;
 
         // Read jetson
         // jetson_state = jetson.read();
@@ -189,10 +190,12 @@ class Infantry : public BaseRobot {
         if (remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N){
             yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS;
             pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS;
-            turret_.set_desired_turret(yaw_desired_angle, pitch_desired_angle);
+            
+            des_turret_state.turret_mode = AIM;
+            des_turret_state.yaw_angle_degs = yaw_desired_angle;
+            des_turret_state.pitch_angle_degs = pitch_desired_angle;
         } else {
             des_turret_state.turret_mode = SLEEP;
-            turret_.setState(des_turret_state);
         }
         // pitch_desired_angle = ?
 

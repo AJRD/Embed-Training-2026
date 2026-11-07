@@ -117,7 +117,6 @@ void TurretSubsystem::periodic(float chassisRpm)
             pitch.pidPosition.resetErrorIntegral();
             yaw.pidSpeed.resetErrorIntegral();
             pitch.pidSpeed.resetErrorIntegral();
-            return;
         }
 
         int dir = 0; // TODO: What's the optimal way to turn if we have to increase our yaw or decrease our yaw? HINT: Set dir either to 1 or -1  
