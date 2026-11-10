@@ -17,14 +17,72 @@ This leads us to the alternative to explicitly configuring our I/O: abstracting 
 
 [TODO: INCLUDE IMAGE HERE]
 
-What devicetree is at its core is a list of structs that dictate the configuration for our I/O, and each one of these structs is called a node. These nodes primarily consist of communication protocol busses (i2c, can, uart, etc.). In our case, since our microcontroller is supported directly by zephyr, it already has a internal `.dtsi` file that has the information for each node, and so we only need to enable/disable them, which ends up being a fairly simple process, since we just write a .overlay file `nucleo_f446re.overlay` to be exact, and that sets the configuration we want. For example, let's examine our can1 node.
+What devicetree is at its core is a list of structs that dictate the configuration for our I/O, and each one of these structs is called a node. These nodes primarily consist of communication protocol busses (i2c, can, uart, etc.). In our case, since our microcontroller is supported directly by zephyr, it already has a internal `.dtsi` file that has the information for each node, and so we only need to enable/disable them, which ends up being a fairly simple process, since we just write a .overlay file `nucleo_f446re.overlay` to be exact, and that sets the configuration we want. For example, let's examine our i2c1 node. 
 
 ```C++
-&can1 { //The node is labeled with &can1, which just lets zephyr know to reference its internal can1 setting for our board
-    pinctrl-0 = <&can1_rx_pa11 &can1_tx_pa12>; // pinctrl-0 just sets the pins we want, in this case we're using & again since these are specific pins within the .dtsi
+&i2c1 { //The node is labeled with &i2c1, which just lets zephyr know to reference its internal i2c1 setting for our board
+    pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>; // pinctrl-0 just sets the pins we want, in this case we're using & again since these are specific pins within the .dtsi
     pinctrl-names = "default"; // This just lets the compiler know we're using the default names and not some alias
     status = "okay"; // status is what enables/disables the node; okay means enabled, "disabled" means disabled
-    bitrate = <1000000>; // This is just the can baud rate, different communication protocols have diff keywords for this same idea 
+    clock-frequency = <100000>; // Note that each communication protocol can have a different keyword for clockspeed
+
+    scl-gpios = <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>; // These two lines set default behavior for the clock and datalines
+    sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+
+
+    imu: ism330@6a { //This is a childnode, note the @6a, which just lets zephyr know what the address is
+        compatible = "st,ism330dhcx"; //listing compatible drivers
+        reg = <0x6a>; // defining the register again
+    };
 };
 ```
+
+Now that we've seen an example of devicetree, let's try to make our own. In testbench/board, write out the devicetree nodes for can1 and can2 
+
+Here are some useful tips: 
+
+- Consult https://pknessness.github.io/nucleo_f446re_pinout/pinout.html for pins
+- the pins should be of the form `&can1_["tx" or "rx" here]_[pa##]`
+- Set bitrate to `1000000`
+- Remember these are structs, don't forget your closing semi-colon
+
+
+Once you've done that, you're probably wondering how we actually use this devicetree node. Well, in your testbench.cpp, you can have something along the lines of
+
+```C++
+static const struct device canbus1 = DEVICE_DT_GET(DT_NODELABEL([your_node]))
+```
+
+To break this down a little, the nodelabel is just the name of the node, so for you guys it should be can1 and can2. Also note that not all device tree devices
+have the same struct/getter, for example, our IMU example earlier actually has a specific `i2c_dt_spec` and associated getter. 
+
+```C++
+static const struct i2c_dt_spec imu_spec = I2C_DT_SPEC_GET(DT_NODELABEL(imu));
+```
+
+Once you've done that, go construct your motor. I trust by this point you can dig around and find the constructor somewhere in the code, I only ask that
+you don't go looking for it in other testbench.cpp files, and instead find it either in DJImotor, reference the other robot.cpps, (note that the constructor
+in zephyr is slightly different than what you saw in week 3 training, so you should go digging in the zephyr codebase for it)
+
+From here, its now time to start writing our startup code in main(). 
+
+If you remember from your week 2, a good habit to have is to have an `init()` fail loudly so you know if something's wrong at start up. Well, the same
+idea applies here. Luckily for us, zephyr gives us a handy `device_is_ready(dev_struct)` that takes in a device struct, and returns true if ready, and false
+if not. You should go in and write a conditional that either prints out "can1" or whatever device is good, or handles an error properly (hint: what's the safest
+thing to do if it doesn't initialize?)
+
+Once we've done that, you're going to want to call
+
+``` C++
+DJIMotor::setCanHandlers();
+DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
+0x201, 0x208, DJIMotor::getCanOneFeedback);
+```
+
+and then start a `while(true)` loop, and **remember** to add `k_sleep(100)` at the end, otherwise our loop won't be consistent.
+
+In this while(true) loop, we should call a periodic function. In this case for simplicity, have the motor power increment from 0 to 1000 power, over the course of 5 seconds 
+(do the math for your loop to get to that point). Remember to call `DJIMotor::sendValues(true);` after you set our power. Once the 5 seconds are up, the motor should ramp back down to 0, and then repeat. 
+
+Make sure to get your code checked by your embed lead before you test. 
 
