@@ -15,7 +15,7 @@ Apart from scheduling, RTOS's also give us dedicated tools (application programm
 
 This leads us to the alternative to explicitly configuring our I/O: abstracting it. Namely, we do this in ZephyrOS with the devicetree. 
 
-[TODO: INCLUDE IMAGE HERE]
+![Generic DeviceTree](Assets/devicetree.png)
 
 What devicetree is at its core is a list of structs that dictate the configuration for our I/O, and each one of these structs is called a node. These nodes primarily consist of communication protocol busses (i2c, can, uart, etc.). In our case, since our microcontroller is supported directly by zephyr, it already has a internal `.dtsi` file that has the information for each node, and so we only need to enable/disable them, which ends up being a fairly simple process, since we just write a .overlay file `nucleo_f446re.overlay` to be exact, and that sets the configuration we want. For example, let's examine our i2c1 node. 
 
@@ -75,14 +75,81 @@ Once we've done that, you're going to want to call
 
 ``` C++
 DJIMotor::setCanHandlers();
-DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
-0x201, 0x208, DJIMotor::getCanOneFeedback);
+
+CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
+if (!can1) {
+    printk("CAN bus 1 initialization failed\n");
+    return -1;
+}
+
+can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
 ```
 
-and then start a `while(true)` loop, and **remember** to add `k_sleep(100)` at the end, otherwise our loop won't be consistent.
+and then start a `while(true)` loop, which should contain a periodic() and a `k_sleep(100)` at the end, otherwise our loop won't be consistent.
 
-In this while(true) loop, we should call a periodic function. In this case for simplicity, have the motor power increment from 0 to 1000 power, over the course of 5 seconds 
-(do the math for your loop to get to that point). Remember to call `DJIMotor::sendValues(true);` after you set our power. Once the 5 seconds are up, the motor should ramp back down to 0, and then repeat. 
+
+For the periodic function, it should have a `can1->readAllCan();` at the beginning, and we can leave it like that for now. 
+ 
 
 Make sure to get your code checked by your embed lead before you test. 
 
+## Ozone 
+
+Often times, after we've implemented some code, we want to then test and measure its performance. While certainly the easiest way to do this is print statements, there are a few problems with that.
+
+1. Most obviously, we can't visualize print statements, and it can be difficult to understand how values change over time if you're just doing a print statement
+
+2.  Print statements will slow down our code 
+
+3.  Print statements are executed rapidly, and we can't go step by step
+
+That being said, print statements like `printk()` (basically printf but less-blocking) are your friends if you're doing quick validation, but the question arises: how can we deal with these limitations of print statements?
+
+One way of dealing with them is through the use of the Ozone debugger. If you've set up Zephyr, you already have this set up, but it's admittedly an engineer's tool: powerful, but not intuitive. 
+
+### Quality of life
+
+If you're inexperienced with real time debuggers, you'll probably have the following thought when first opening Ozone: "what the fuck am I looking at?"
+
+To make your life easier, I suggest having the following configuration of windows in Ozone (note that you can always enable windows under "view" at the top)
+
+![Ozone Layout](Assets/ozoneLayout.png)
+
+### Graphing in Ozone
+
+Arguably the most useful utility of Ozone is the ability to plot and graph data over time. Something you'll notice is that on the top right, you'll see your global variables.
+In these global variables, you can right-click on one and select graph (or alternatively hold control-G when clicking it), which will add it to your watched data and timeline. Make sure to 
+
+- Check the box in the timeline to enable graphing for it
+
+- Up your timeline division from 1 nanosecond to something reasonable (I recommend 5 seconds for most data)
+
+Okay, so looking back to our list of issues, this obviously solves our first issue since now we have a nice graph to look at, but does it solve our second issue? Well, thinking about it, graphing something should be more computationally expensive than just printing something out; however, the way the J-Link/Ozone works is that we can basically look at the MCU memory, and directly extract the features we want, so the CPU doesn't have to worry about printing or anything like that. As a result, we've solved both of our first and second issues, leaving us with the third: can we go through our program step-by-step.
+
+### Breakpoints
+
+While graphs are useful for measurements, they're likely not what you think of when you think "Real-Time Debugger", since obviously graphs are useless if our program crashes or otherwise doesn't work. Luckily for us, Ozone allows us to set breakpoints, which can be done by clicking on the dot to the left of a particular line. This will cause the CPU to completely halt upon reaching the break point, so we can set discrete checkpoints for the program. 
+
+![Inline Breakpoints](Assets/breakpoints.png)
+
+While this is nice, this can be a hassle if we're just waiting to see when -- or if-- a particular variable changes. While this sounds arbitary, variables changing for seemingly no reason is an entire class of bugs, and although uncommon, they can be very difficult to find. In such a case, we want to set a data breakpoint on a particular variable's memory address, and the program will halt upon a change. 
+
+![Data breakpoints](Assets/dataBreakPoint.png)
+![Data breakpoint Menu](Assets/databreakpoint2.png)
+## Assignment: Collecting Motor data
+
+For this part, return to your testbench.cpp, and make global variables for motor current and torque, and make sure you update them every periodic loop with `DJIMotor::getData()`  
+
+From there, run the following tests: (HINT: I strongly suggest you just write a testOne() testTwo() etc. functions that you can easily swap out )
+
+1. Have the motor run at a constant 600 power and log current and torque over time. Remember to run `DJIMotor::sendValues(true);` after setPower()
+
+2. Have motor power periodically alternate between 0 and 800, and then decrease down to -750 before increasing again. The time from 0 to 750 should take 3 seconds, with discrete steps of 25 power at a time.
+
+### **SAFETY NOTES**
+
+- **Do not** flash your code without first getting it reviewed by your lead. These motors are not toys and can output very powerful output torques, and simultaneously they are sensitive, expensive electronics, so be careful when testing
+
+- **Do not** test without direct supervision from your lead. 
+
+- For test 2, **use** `std::clamp(power, -800, 800)` before doing `setPower(power)` to make sure your power never goes beyond this range
