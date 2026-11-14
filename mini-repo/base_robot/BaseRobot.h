@@ -156,9 +156,9 @@ class BaseRobot {
         
         //Bounding the four j variables
         //TODO: Make sure they're all on [-1, 1] range
-        jx = std::max(-1.0f, std::min(1.0f, jx));
-        jy = std::max(-1.0f, std::min(1.0f, jy));
-        jpitch = std::max(-1.0f, std::min(1.0f, jpitch));
-        jyaw = std::max(-1.0f, std::min(1.0f, jyaw));
+        jx = std::clamp(jx, -1.0f, 1.0f);
+        jy = std::clamp(jy, -1.0f, 1.0f);
+        jpitch = std::clamp(jpitch, -1.0f, 1.0f);
+        jyaw = std::clamp(jyaw, -1.0f, 1.0f);
     }
 };

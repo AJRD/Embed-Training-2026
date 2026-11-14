@@ -110,8 +110,8 @@ void TurretSubsystem::periodic(float chassisRpm)
             turret_time = us_ticker_read();
             
             //TODO: What should the motors be doing?
-            yaw.setPower(0);
-            pitch.setPower(0);
+            yaw.setSpeed(0);
+            pitch.setSpeed(0);
             // Week 4/5 TODO: what should the PIDs do if we get a NAN? 
             yaw.pidPosition.resetErrorIntegral();
             pitch.pidPosition.resetErrorIntegral();
@@ -139,7 +139,7 @@ void TurretSubsystem::periodic(float chassisRpm)
         
         // TODO: What's going on above? What should we be doing with the yaw motor here?
         yaw.setPower(des_yaw_power);
-        yaw.setSpeed(des_yaw_velo);
+        // yaw.setSpeed(des_yaw_velo);
 
 
         // Pitch calc

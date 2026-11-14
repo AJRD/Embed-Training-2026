@@ -190,6 +190,7 @@ class Infantry : public BaseRobot {
         if (remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N){
             yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS;
             pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS;
+            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::ROBOT_ORIENTED);
             
             des_turret_state.turret_mode = AIM;
             des_turret_state.yaw_angle_degs = yaw_desired_angle;
@@ -207,7 +208,6 @@ class Infantry : public BaseRobot {
         // Chassis logic
         // TODO: ADD THE CHASSIS LOGIC HERE
         if (remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N){
-            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::ROBOT_ORIENTED);
         } else {
             chassis_.setWheelPower({0,0,0,0});
         }
